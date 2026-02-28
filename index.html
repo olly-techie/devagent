@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevAgent — Ship code from your phone</title>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #22c55e;
+    --green-dim: #16a34a;
+    --green-glow: rgba(34,197,94,0.18);
+    --green-subtle: rgba(34,197,94,0.08);
+    --bg: #0a0a0a;
+    --surface: #111613;
+    --card: #141a16;
+    --card-border: rgba(34,197,94,0.15);
+    --text: #f0f0f0;
+    --muted: #6b7280;
+    --dimmer: #374151;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(34,197,94,0.1);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--text);
+  }
+
+  .nav-logo svg { color: var(--green); }
+
+  .badge-beta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-connect {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-connect:hover { border-color: var(--green); color: var(--green); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 30%, rgba(34,197,94,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* subtle grid */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(34,197,94,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,197,94,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 99px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--green);
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .pill-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(38px, 9vw, 64px);
+    line-height: 1.1;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero h1 .accent { color: var(--green); }
+
+  .hero p {
+    font-size: 16px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 340px;
+    margin: 0 auto 36px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 17px 24px;
+    background: var(--green);
+    color: #000;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 24px rgba(34,197,94,0.3);
+  }
+  .btn-primary:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 0 32px rgba(34,197,94,0.45); }
+
+  .btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 24px;
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.25); }
+
+  .hero-tags {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 36px;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+
+  .tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.03);
+  }
+
+  /* ── SECTIONS ── */
+  section { padding: 60px 20px; }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(26px, 6vw, 38px);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .section-sub {
+    text-align: center;
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 40px;
+  }
+
+  /* ── DASHBOARD ── */
+  .dashboard-section { background: var(--surface); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .card-header-right {
+    font-size: 13px;
+    color: var(--green);
+  }
+
+  .repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .repo-item:last-child { margin-bottom: 0; }
+
+  .repo-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+
+  .repo-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .repo-meta-dot {
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
+  .repo-run {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 50%;
+    color: var(--green);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .repo-run:hover { background: var(--green-subtle); }
+
+  /* Terminal */
+  .terminal {
+    background: #0d1410;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ef4444; }
+  .dot-yellow { background: #f59e0b; }
+  .dot-green { background: var(--green); }
+
+  .terminal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  .terminal-body { padding: 16px; }
+
+  .log-line {
+    display: flex;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+  }
+
+  .log-num { color: var(--dimmer); min-width: 20px; }
+  .log-text { color: var(--muted); }
+  .log-text.success { color: var(--green); }
+
+  /* PR card */
+  .pr-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .pr-num { color: var(--muted); font-size: 13px; margin-right: 8px; }
+
+  .pr-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .pr-badge.merged { color: var(--green); border: 1px solid rgba(34,197,94,0.35); background: var(--green-subtle); }
+  .pr-badge.open { color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); background: rgba(96,165,250,0.08); }
+
+  /* ── FEATURES ── */
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .feature-card:hover { border-color: rgba(34,197,94,0.4); box-shadow: 0 0 20px rgba(34,197,94,0.06); }
+
+  .feature-icon {
+    width: 50px; height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34,197,94,0.12);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    color: var(--green);
+    font-size: 22px;
+  }
+
+  .feature-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .feature-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* ── HOW IT WORKS ── */
+  .how-section { background: var(--surface); }
+
+  .steps { max-width: 480px; margin: 0 auto; }
+
+  .step {
+    display: flex;
+    gap: 20px;
+    position: relative;
+  }
+
+  .step-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .step-num {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--green);
+    background: rgba(34,197,94,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+
+  .step-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(to bottom, rgba(34,197,94,0.4), rgba(34,197,94,0.05));
+    margin: 8px 0;
+    min-height: 40px;
+  }
+
+  .step:last-child .step-line { display: none; }
+
+  .step-content { padding-bottom: 36px; padding-top: 8px; }
+  .step-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; margin-bottom: 6px; }
+  .step-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 40px 20px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .footer-sub { font-size: 13px; color: var(--muted); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* scroll reveal */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.55s ease, transform 0.55s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* SVG icons */
+  svg { display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    DevAgent
+    <span class="badge-beta">beta</span>
+  </div>
+  <button class="btn-connect">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    Connect
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="pill">
+    <span class="pill-dot"></span>
+    AI-POWERED DEV AGENT
+  </div>
+  <h1>Ship code from <span class="accent">your<br>phone</span></h1>
+  <p>Connect GitHub. Describe a task. AI writes the code, creates a branch, and opens a PR — all from your pocket.</p>
+  <div class="hero-btns">
+    <button class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Get Started
+    </button>
+    <button class="btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+      View Demo
+    </button>
+  </div>
+  <div class="hero-tags">
+    <span class="tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      Mobile-First
+    </span>
+    <span class="tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      Auto PR Creation
+    </span>
+    <span class="tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Artificial Intelligence
+    </span>
+  </div>
+</section>
+
+<!-- DASHBOARD SECTION -->
+<section class="dashboard-section" id="dashboard">
+  <h2 class="section-title reveal">Your Agent Dashboard</h2>
+  <p class="section-sub reveal">Manage repos, trigger tasks, and watch AI work in real-time.</p>
+
+  <!-- Repositories Card -->
+  <div class="card reveal">
+    <div class="card-header">
+      <div class="card-header-left">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        Repositories
+      </div>
+      <span class="card-header-right">3 connected</span>
+    </div>
+
+    <div class="repo-item">
+      <div>
+        <div class="repo-name">mobile-app</div>
+        <div class="repo-meta">
+          TypeScript
+          <span class="repo-meta-dot"></span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          2h ago
+        </div>
+      </div>
+      <div class="repo-run">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+    </div>
+
+    <div class="repo-item">
+      <div>
+        <div class="repo-name">api-server</div>
+        <div class="repo-meta">
+          Python
+          <span class="repo-meta-dot"></span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          5h ago
+        </div>
+      </div>
+      <div class="repo-run">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+    </div>
+
+    <div class="repo-item">
+      <div>
+        <div class="repo-name">landing-page</div>
+        <div class="repo-meta">
+          React
+          <span class="repo-meta-dot"></span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          1d ago
+        </div>
+      </div>
+      <div class="repo-run">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#22c55e"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal -->
+  <div class="terminal reveal">
+    <div class="terminal-bar">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+      <span class="terminal-label">agent.log</span>
+    </div>
+    <div class="terminal-body">
+      <div class="log-line"><span class="log-num">01</span><span class="log-text">Connecting to GitHub...</span></div>
+      <div class="log-line"><span class="log-num">02</span><span class="log-text success">✓ Authenticated as @developer</span></div>
+      <div class="log-line"><span class="log-num">03</span><span class="log-text">Cloning repo: mobile-app/main...</span></div>
+      <div class="log-line"><span class="log-num">04</span><span class="log-text">Analyzing codebase structure...</span></div>
+      <div class="log-line"><span class="log-num">05</span><span class="log-text success">Claude: Creating auth middleware...</span></div>
+      <div class="log-line"><span class="log-num">06</span><span class="log-text success">Claude: Writing unit tests...</span></div>
+      <div class="log-line"><span class="log-num">07</span><span class="log-text success">✓ Branch created: feat/auth-middleware</span></div>
+      <div class="log-line"><span class="log-num">08</span><span class="log-text success">✓ 3 files committed</span></div>
+      <div class="log-line"><span class="log-num">09</span><span class="log-text success">✓ PR #42 opened → Ready for review</span></div>
+    </div>
+  </div>
+
+  <!-- Pull Requests -->
+  <div class="card reveal">
+    <div class="card-header">
+      <div class="card-header-left">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+        Recent Pull Requests
+      </div>
+    </div>
+
+    <div class="pr-item">
+      <div><span class="pr-num">#42</span> feat: add auth middleware</div>
+      <span class="pr-badge merged">⊙ merged</span>
+    </div>
+    <div class="pr-item">
+      <div><span class="pr-num">#43</span> fix: resolve mobile layout bug</div>
+      <span class="pr-badge open">open</span>
+    </div>
+    <div class="pr-item">
+      <div><span class="pr-num">#44</span> refactor: optimize API calls</div>
+      <span class="pr-badge open">open</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <h2 class="section-title reveal">Built for developers on the go</h2>
+  <p class="section-sub reveal">Everything you need to manage code from your phone.</p>
+
+  <div class="feature-card reveal">
+    <div class="feature-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+    </div>
+    <div class="feature-title">Mobile-First</div>
+    <div class="feature-desc">Ship code from anywhere. Designed for phones and tablets first.</div>
+  </div>
+
+  <div class="feature-card reveal">
+    <div class="feature-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </div>
+    <div class="feature-title">Artificial Intelligence</div>
+    <div class="feature-desc">AI understands your codebase, writes code, and handles complex tasks.</div>
+  </div>
+
+  <div class="feature-card reveal">
+    <div class="feature-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    </div>
+    <div class="feature-title">Auto Branching</div>
+    <div class="feature-desc">Creates feature branches and opens PRs automatically.</div>
+  </div>
+
+  <div class="feature-card reveal">
+    <div class="feature-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+    </div>
+    <div class="feature-title">Live Streaming</div>
+    <div class="feature-desc">Watch your agent work in real-time with SSE-powered logs.</div>
+  </div>
+
+  <div class="feature-card reveal">
+    <div class="feature-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div class="feature-title">GitHub OAuth</div>
+    <div class="feature-desc">Secure authentication with GitHub. Your tokens are encrypted at rest.</div>
+  </div>
+
+  <div class="feature-card reveal">
+    <div class="feature-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    </div>
+    <div class="feature-title">Zero Config</div>
+    <div class="feature-desc">Connect your repo and start shipping. No complex setup needed.</div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <h2 class="section-title reveal">How it works</h2>
+  <p class="section-sub reveal">Four steps from idea to pull request.</p>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">1</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-title">Connect GitHub</div>
+        <div class="step-desc">Authorize with GitHub OAuth. We securely store your token.</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">2</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-title">Select a Repo</div>
+        <div class="step-desc">Pick any repo from your account. We analyze its structure.</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">3</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-title">Describe Your Task</div>
+        <div class="step-desc">Tell the AI what to build. Be specific or high-level — it adapts.</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="step-left">
+        <div class="step-num">4</div>
+        <div class="step-line"></div>
+      </div>
+      <div class="step-content">
+        <div class="step-title">AI Writes Code</div>
+        <div class="step-desc">Claude generates code, creates a branch, and opens a PR.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    DevAgent
+  </div>
+  <div class="footer-sub">Ship code from your pocket. Powered by Claude AI.</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Animated terminal typing effect
+  const logLines = document.querySelectorAll('.log-line');
+  logLines.forEach((line, i) => {
+    line.style.opacity = '0';
+    line.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => { line.style.opacity = '1'; }, 400 + i * 200);
+  });
+</script>
+</body>
+</html>
