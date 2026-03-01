@@ -1,0 +1,28 @@
+[phases.setup]
+nixPkgs = [
+  "php83",
+  "php83Packages.composer",
+  "php83Extensions.pdo",
+  "php83Extensions.pdo_mysql",
+  "php83Extensions.curl",
+  "php83Extensions.mbstring",
+  "php83Extensions.json",
+  "php83Extensions.openssl",
+  "php83Extensions.tokenizer",
+  "php83Extensions.ctype",
+  "nginx"
+]
+
+[phases.install]
+cmds = [
+  "cd /app && composer install --no-dev --optimize-autoloader --no-interaction"
+]
+
+[phases.build]
+cmds = [
+  "mkdir -p /app/storage/logs",
+  "chmod -R 755 /app/storage"
+]
+
+[start]
+cmd = "bash /app/scripts/start.sh"

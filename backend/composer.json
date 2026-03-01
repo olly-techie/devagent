@@ -1,0 +1,24 @@
+{
+    "name": "devagent/devagent",
+    "description": "Mobile-first AI Dev Agent — GitHub + Claude",
+    "type": "project",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "DevAgent\\": "src/"
+        }
+    },
+    "scripts": {
+        "serve":   "php -S localhost:8080 -t public/",
+        "migrate": "php bin/migrate.php",
+        "post-install-cmd": [
+            "@php -r \"if (!file_exists('.env') && file_exists('.env.example')) { echo 'Tip: copy .env.example to .env\\n'; }\""
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

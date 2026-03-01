@@ -1,0 +1,18 @@
+# Dependencies
+/vendor/
+
+# Environment — NEVER commit this
+.env
+
+# Logs
+/storage/logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
